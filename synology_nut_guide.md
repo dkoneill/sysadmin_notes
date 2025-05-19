@@ -49,7 +49,14 @@ MODE=standalone
 
 ---
 
-### 5. Restart NUT Services
+### 5. `/etc/nut/upsmon.conf`
+```
+MONITOR ups@localhost 1 upsmon secret master # or 'primary' if using NUT 2.8+
+```
+
+---
+
+### 6. Restart NUT Services
 
 ```
 sudo systemctl restart nut-server nut-driver
@@ -57,7 +64,7 @@ sudo systemctl restart nut-server nut-driver
 
 ---
 
-### 6. (Optional) Open Firewall Port
+### 7. (Optional) Open Firewall Port
 
 ```
 sudo ufw allow from 10.10.0.18 to any port 3493 proto tcp
