@@ -1,6 +1,13 @@
 # Connect Synology NAS to a Linux NUT Server (UPS Monitoring)
 
-Use this guide to configure your Synology NAS to monitor a UPS managed by a NUT server on a Linux machine.
+Use this guide to configure your Synology NAS to monitor a UPS managed
+by a NUT server on a Linux machine.
+
+This document makes the following assumptions:
+ * A cyberpower UPS
+ * Connected via a USB cable to a Linux box of some sort at 10.10.0.17
+ * Network UPS Tools are installed ```apt install nut```
+ * A NUT client device at 10.10.0.18
 
 ---
 
@@ -11,10 +18,21 @@ Use this guide to configure your Synology NAS to monitor a UPS managed by a NUT 
 > **UPS name must be `[ups]` — Synology requires this.**
 
 ```
+# lsusb output
+# Bus 001 Device 003: ID 0764:0601 Cyber Power System, Inc. PR1500LCDRT2U UPS
+# Use the ID information vendorid:productid
+# Cyberpower UPS's seem to need a polling interval less than 20 seconds
+# otherwise the monitoring daemon fails with log messages like
+#   upsmon[3888210]: Poll UPS [ups@localhost] failed - Data stale
+#   upsmon[3888210]: Communications with UPS ups@localhost lost  
+
 [ups]
-  driver = usbhid-ups
-  port = auto
-  desc = "CyberPower CP850PFCLCD"
+    driver = usbhid-ups
+    port = auto
+    vendorid = 0764
+    productid = 0601
+    pollinterval = 15   # https://nmaggioni.xyz/2017/03/14/NUT-CyberPower-UPS/
+    desc = "CyberPower CP850PFCLCD"
 ```
 
 ---
@@ -35,8 +53,8 @@ secret
 
 ```
 [monuser]
-  password = secret
-  upsmon slave       # or 'upsmon secondary' if using NUT 2.8+
+    password = secret
+    upsmon slave       # or 'upsmon secondary' if using NUT 2.8+
 ```
 
 ---
@@ -59,12 +77,13 @@ MONITOR ups@localhost 1 upsmon secret master # or 'primary' if using NUT 2.8+
 ### 6. Restart NUT Services
 
 ```
-sudo systemctl restart nut-server nut-driver
+sudo systemctl restart nut-server nut-driver nut-monitor
 ```
 
 ---
 
 ### 7. (Optional) Open Firewall Port
+This example opens fw for traffic from the device at 10.10.0.18
 
 ```
 sudo ufw allow from 10.10.0.18 to any port 3493 proto tcp
