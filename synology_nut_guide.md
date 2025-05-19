@@ -126,3 +126,47 @@ battery.voltage: 13.6
 battery.voltage.nominal: 12
 ...
 ```
+
+## Monit (Optional)
+From time to time the usb driver fails on the linux box and the
+Internet mind isn't certain why. Therefore monit can be added to the
+configuration to look for problems and fix them.
+
+1. Create a script to look at the last 5 minutes of journalctl data
+and put it into /usr/local/bin/check_nut_device_log.sh
+```
+#!/bin/bash
+
+# Check for the error in the last 5 minutes of logs
+journalctl -u nut-server --since "5 minutes ago" | grep -q "Data for UPS \[ups\] is stale - check driver"
+
+if [ $? -eq 0 ]; then
+  # Problem found
+  exit 1
+else
+  # No issue
+  exit 0
+fi
+```
+Make it executable
+```chmod +x /usr/local/bin/check_nut_device_log.sh```
+
+2. Create a monit script in
+/etc/monit/conf-available/nut-driver-monitor
+```
+CHECK PROGRAM nut_driver_log_check WITH PATH "/usr/local/bin/check_nut_device_log.sh"
+    EVERY 1 CYCLE
+    IF STATUS != 0 THEN RESTART
+    START PROGRAM = "/bin/systemctl start nut-driver.service"
+    STOP PROGRAM = "/bin/systemctl stop nut-driver.service"
+```
+link the script
+```
+cd /etc/monit/conf-enabled
+ln -s ../conf-available/nut-driver-monitor .
+```
+restart monit
+```
+service monit stop
+service monit start
+```
